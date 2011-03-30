@@ -46,7 +46,7 @@ if($imob) { //we haz ignition, rage engage.
         if($energysleeptil < date('U')) {
             //do some missions to progress
             do {
-                if($mission = $imob->MissionBestExp(true) !== false) {
+                if($mission = $imob->MissionBestExp(true)) {
                     $imob->DoMission($mission);
                 }
             } while($imob->energy > 0 && $mission !== false);
