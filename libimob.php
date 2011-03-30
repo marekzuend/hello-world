@@ -55,6 +55,9 @@ class iMobster {
     public $stamina = 0;
     public $maxstamina = 0;
 
+    public $timeleft = 0;
+    public $energyrate = 0;
+
     //constructicons, form devestat0r!
     function __construct($udid, $pf, $platform = 'iphone', $debug_or_dt = false, $debug2 = false) {
         if(!$udid || !$pf) return false;
@@ -302,7 +305,11 @@ class iMobster {
 
         //timers, fuck off some of this regex in place for json rape :)
         if(preg_match('#setTopBarTimerData\((.*?)\);#', $body, $match)) {
-//            var_dump(json_decode($match[1]));
+            //var_dump(json_decode($match[1]));
+            //exit;
+            $o = json_decode($match[1]);
+            $this->timeleft = $o->cash->timeLeft;
+            $this->energyrate = $o->energy->rate;
         }
 
         return;
@@ -598,6 +605,7 @@ class iMobster {
             $items[$k]['NewIncome'] = $this->launderMoney($v['Income']);
 
             $price = $items[$k]['NewCost'] / $items[$k]['NewIncome'];
+            $items[$k]['Price'] = $price;
             $this->Log(sprintf('TopRealEstate %s @ %s', $items[$k]['Name'], $price), 'D');
             if($top === false || $price < $top) { 
                 if($afford && $budget < $items[$k]['NewCost']) continue;

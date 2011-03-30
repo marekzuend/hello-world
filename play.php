@@ -37,11 +37,13 @@ function updateUser($v) {
 
 
 if($imob) { //we haz ignition, rage engage.
+    $energysleeptil = 0;
+    $sc = 0; //sleeps counter, fuck bitches get money
+    $tresleeps = 0;
 
     while(1) {
         //reset some loopy stuff
         $users = array();
-        $energysleeptil = (isset($energysleeptil)) ? $energysleeptil : 0;
 
         if($energysleeptil < date('U')) {
             //do some missions to progress
@@ -70,34 +72,28 @@ if($imob) { //we haz ignition, rage engage.
             $imob->Fight($t[0]);
         }
 
-        //spend that cash
-        do {
-            $buy = $imob->TopRealEstate(true, true);
-        } while ($buy !== false);
+        if($sc == $tresleeps) {
+            //spend that cash
+            $imob->BankWithdraw();
+            $imob->Auth(); //bank withdrawals seem to fuck with future posts... this is a bandaid.
 
-        //see if its time to spend some more cash -- fuck it buggy
+            do {
+                $buy = $imob->TopRealEstate(true, true);
+            } while ($buy !== false);
 
-/*        $bb = $imob->BankBalance();
-        $total = $bb + $imob->cash;
-  
-        $imob->Log(sprintf('cash: %s bank: %s total %s', $imob->cash, $bb, $total), 'I');
-
-        $tre = $imob->TopRealEstate(true, false, $total);
-
-        if($tre) { 
-            $imob->Log(sprintf('Target Buy: %s for %s', $tre['Name'], $tre['NewCost']), 'I');
-            if($total >= $tre['NewCost']) {
-                $imob->Log('Total is more than Cost', 'I');
-                if($tre['NewCost'] > $imob->cash) {
-                    $need = $tre['NewCost'] - $imob->cash;
-                    $imob->Log(sprintf('Need to make a withdrawal of %s', $need), 'I');
-                    $imob->BankWithdraw($need);
-                }
-                $imob->TopRealEstate(true, true);
-                continue;
-            } 
-        }
-*/
+            /*
+             * determine how many sleeps till the easter bunny comes. 
+             * loose estimate, cant predict attacks etc, money made, lost, or upkeep changes
+             * 11% of income (per tick) for a bit of buffer..?. probably needs to be higher to compensate for 10% deposit fee
+             * healing is also kind of expensive..
+             */
+            $tre = $imob->TopRealEstate(false, false);
+            $tresleeps = ceil($tre['NewCost'] / $imob->income);
+            //plus 11% per tick...
+            $tresleeps += ceil($tre['NewCost'] / (($imob->income / 100) * ($tresleeps * 11))); 
+            $imob->Log(sprintf('Buying Real Estate in %d sleeps, aiming to buy %s for $%d ($%d)', $tresleeps, $tre['Name'], $tre['NewCost'], $tre['Income']), 'I');
+            $sc = 0;
+        } 
 
         //crawl some comments and profiles
        $skip_comments = false;            
@@ -138,25 +134,23 @@ if($imob) { //we haz ignition, rage engage.
 
         $imob->BankDeposit();
 
-        //srsly the timing is luls when this shit happens!
-        if($imob->cash > 0) continue;
+        //prevent cash regen after deposit. it happens -_-
+        if($imob->cash > 0) { 
+            $sc++;
+            continue;
+        }
 
-#       $imob->BankWithdraw(10);
-
-        /* 
-         * figure out exact sleep times here to maximize efficiency
-         */
-
-
-        //sleep my child
+        //get the kids ready for bed, no smokes or alcohol after 8pm ya little shits.
         $now = date('U');
 
-        //nasty estimate for now
-        $energysleeptil = ($imob->maxenergy - $imob->energy) * 240 + $now;
-        $sleeptil = $now + 7200;
+        $energysleeptil = ($imob->maxenergy - $imob->energy) * $imob->energyrate + $now;
+        $sleeptil = $now + $imob->timeleft+10;
+        $tretogo = $tresleeps - $sc;
 
-#        $imob->Log(sprintf('Sleeping for 1 hour (until %s)', date('d-M-Y G:i:s', $sleeptil)), 'N');
+        $timelog = true;
         $si=0;
+
+        #FIXME: add break on energy
         while($sleeptil > $now) {
             $now = date('U');
             $min = ($sleeptil-$now)/60;
@@ -164,14 +158,15 @@ if($imob) { //we haz ignition, rage engage.
             $s = array('-', '\\', '|', '/');
             if($si == 4) $si = 0;
             $sym = $s[$si++];
+            if($timelog == true) {
+                $imob->Log(sprintf("Sleeping for %d minutes (until %s)\n\tenergy restored in %d minutes\n\treal estate in %d sleeps", $min, date('d-M-Y G:i:s', $sleeptil), $energymin, $tretogo), 'N');
+                $timelog = false;
+            }
             printf("\r[%s] Notice: Sleeping for %d minutes (until %s), energy restored in %d minutes", $sym, $min, date('d-M-Y G:i:s', $sleeptil), $energymin);
             sleep(2);
         }
+        $sc++;
         echo "\n";
         $imob->Auth();
-
     }
 }
-
-
-#var_dump($imob);
