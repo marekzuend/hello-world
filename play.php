@@ -151,7 +151,7 @@ if($imob) { //we haz ignition, rage engage.
         $now = date('U');
 
         //nasty estimate for now
-        $energysleeptil = $imob->maxenergy * 360 + $now;
+        $energysleeptil = $imob->maxenergy * 240 + $now;
         $sleeptil = $now + 7200;
 
 #        $imob->Log(sprintf('Sleeping for 1 hour (until %s)', date('d-M-Y G:i:s', $sleeptil)), 'N');
