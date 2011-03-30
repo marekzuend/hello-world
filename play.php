@@ -41,17 +41,19 @@ if($imob) { //we haz ignition, rage engage.
     while(1) {
         //reset some loopy stuff
         $users = array();
-        $mission = true;
+        $energysleeptil = (isset($energysleeptil)) ? $energysleeptil : 0;
 
-        //do some missions to progress
-        while($imob->energy > 0 && $mission !== false) {
-            $mission = $imob->MissionBestExp(true);
-            $imob->DoMission($mission);
-        }
+        if($energysleeptil < date('U')) {
+            //do some missions to progress
+            do {
+                $mission = $imob->MissionBestExp(true);
+                $imob->DoMission($mission);
+            } while($imob->energy > 0 && $mission !== false);
 
-        //do some missions for xp
-        while($imob->energy > 0) {
-            $imob->DoMission($imob->MissionBestExp());
+            //do some missions for xp
+            while($imob->energy > 0) {
+                $imob->DoMission($imob->MissionBestExp());
+            }
         }
 
         $imob->Heal();
@@ -149,19 +151,20 @@ if($imob) { //we haz ignition, rage engage.
         $now = date('U');
 
         //nasty estimate for now
-        $energyrestoretime = $imob->maxenergy * 360;
-        $sleeptil = ($energyrestoretime > 3600) ? $energyrestoretime : 3600;
-        $sleeptil += $now;
+        $energysleeptil = $imob->maxenergy * 360 + $now;
+        $sleeptil = $now + 7200;
 
 #        $imob->Log(sprintf('Sleeping for 1 hour (until %s)', date('d-M-Y G:i:s', $sleeptil)), 'N');
         $si=0;
+        echo "\n";
         while($sleeptil > $now) {
             $now = date('U');
             $min = ($sleeptil-$now)/60;
+            $energymin = ($energysleeptil-$now)/60;
             $s = array('-', '\\', '|', '/');
             if($si == 4) $si = 0;
             $sym = $s[$si++];
-            printf("\r[%s] Notice: Sleeping for %d minutes (until %s)", $sym, $min, date('d-M-Y G:i:s', $sleeptil));
+            printf("\r[%s] Notice: Sleeping for %d minutes (until %s), energy restored in %d minutes", $sym, $min, date('d-M-Y G:i:s', $sleeptil), $energymin);
             sleep(2);
         }
         echo "\n";
