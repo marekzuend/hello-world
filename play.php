@@ -147,7 +147,12 @@ if($imob) { //we haz ignition, rage engage.
 
         //sleep my child
         $now = date('U');
-        $sleeptil = $now+3600;
+
+        //nasty estimate for now
+        $energyrestoretime = $imob->maxenergy * 360;
+        $sleeptil = ($energyrestoretime > 3600) ? $energyrestoretime : 3600;
+        $sleeptil += $now;
+
 #        $imob->Log(sprintf('Sleeping for 1 hour (until %s)', date('d-M-Y G:i:s', $sleeptil)), 'N');
         $si=0;
         while($sleeptil > $now) {
