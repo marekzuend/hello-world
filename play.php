@@ -46,8 +46,9 @@ if($imob) { //we haz ignition, rage engage.
         if($energysleeptil < date('U')) {
             //do some missions to progress
             do {
-                $mission = $imob->MissionBestExp(true);
-                $imob->DoMission($mission);
+                if($mission = $imob->MissionBestExp(true) !== false) {
+                    $imob->DoMission($mission);
+                }
             } while($imob->energy > 0 && $mission !== false);
 
             //do some missions for xp
@@ -133,7 +134,7 @@ if($imob) { //we haz ignition, rage engage.
         $imob->RespondToInvites();
 
         //see if it reall is time to nap or can we keep playing?
-        if($imob->energy > 0 || ($imob->health > 30 && $imob->stamina > 0)) continue;
+        if($imob->health > 30 && $imob->stamina > 0) continue;
 
         $imob->BankDeposit();
 
@@ -151,12 +152,11 @@ if($imob) { //we haz ignition, rage engage.
         $now = date('U');
 
         //nasty estimate for now
-        $energysleeptil = $imob->maxenergy * 240 + $now;
+        $energysleeptil = ($imob->maxenergy - $imob->energy) * 240 + $now;
         $sleeptil = $now + 7200;
 
 #        $imob->Log(sprintf('Sleeping for 1 hour (until %s)', date('d-M-Y G:i:s', $sleeptil)), 'N');
         $si=0;
-        echo "\n";
         while($sleeptil > $now) {
             $now = date('U');
             $min = ($sleeptil-$now)/60;

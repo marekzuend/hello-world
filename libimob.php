@@ -899,7 +899,10 @@ class iMobster {
         }
         if($best !== false) {
             $this->Log(sprintf("MissionBestExp: %s ExpRate: %s CashRate: %s", $best['Name'], $best['ExperienceRate'], $best['CashRate']), 'I');
-        } else $this->Log('MissionsBestExp: no mission', 'I');
+        } else {
+            $this->Log('MissionsBestExp: no mission', 'I');
+            return false;
+        }
         return $best;
     }
 
