@@ -38,7 +38,7 @@ function updateUser($v) {
 
 if($imob) { //we haz ignition, rage engage.
     $energysleeptil = 0;
-    $sc = 0; //sleeps counter, fuck bitches get money
+    //fuck bitches get money
     $tresleeps = false;
 
     while(1) {
@@ -73,7 +73,7 @@ if($imob) { //we haz ignition, rage engage.
             }
         }
 
-        if($tresleeps !== false && $sc >= $tresleeps) { //should skip first run
+        if($tresleeps === 0) { //should skip first run
             //spend that cash
             $needed = $tre['NewCost'] - $imob->cash;
             if($needed > 0) { 
@@ -82,7 +82,6 @@ if($imob) { //we haz ignition, rage engage.
             $imob->Auth(); //bank withdrawals seem to fuck with future posts... this is a bandaid.
 
             $buy = $imob->TopRealEstate(true, true);
-            $sc = 0;
         } 
 
         /*
@@ -139,29 +138,21 @@ if($imob) { //we haz ignition, rage engage.
         //see if it reall is time to nap or can we keep playing?
         if($imob->health > 30 && $imob->stamina > 0) continue;
 
-        $imob->BankDeposit();
+        if($imob->cash > 10) $imob->BankDeposit();
 
         //prevent cash regen after deposit. it happens -_-
-        if($imob->cash > 0) { 
-            $sc++;
-            continue;
-        }
+        if($imob->cash > 0) continue;
 
         //get the kids ready for bed, no smokes or alcohol after 8pm ya little shits.
         $now = date('U');
 
         $energysleeptil = ($imob->maxenergy - $imob->energy) * $imob->energyrate + $now;
         $sleeptil = $now + $imob->timeleft+10;
-        $tretogo = $tresleeps - $sc;
-
         $timelog = true;
         $si=0;
 
         while($sleeptil > $now) {
-            if($imob->energy == $imob->maxenergy || $imob->energy > ($imob->levelexp - $imob->exp)) {
-                $skip_sc = true;
-                break;
-            }
+            if($imob->energy == $imob->maxenergy || $imob->energy > ($imob->levelexp - $imob->exp)) break;
             $now = date('U');
             $min = ($sleeptil-$now)/60;
             $energymin = ($energysleeptil-$now)/60;
@@ -169,13 +160,12 @@ if($imob) { //we haz ignition, rage engage.
             if($si == 4) $si = 0;
             $sym = $s[$si++];
             if($timelog == true) {
-                $imob->Log(sprintf("Sleeping for %d minutes (until %s)\n\tenergy restored in %d minutes\n\treal estate in %d sleeps", $min, date('d-M-Y G:i:s', $sleeptil), $energymin, $tretogo), 'N');
+                $imob->Log(sprintf("Sleeping for %d minutes (until %s)\n\tenergy restored in %d minutes\n\treal estate in %d sleeps", $min, date('d-M-Y G:i:s', $sleeptil), $energymin, $tresleeps), 'N');
                 $timelog = false;
             }
             printf("\r[%s] Notice: Sleeping for %d minutes (until %s), energy restored in %d minutes", $sym, $min, date('d-M-Y G:i:s', $sleeptil), $energymin);
             sleep(2);
         }
-        if(!$skip_sc) $sc++;
         echo "\n";
         $imob->Auth();
     }
