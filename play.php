@@ -73,7 +73,7 @@ if($imob) { //we haz ignition, rage engage.
             $imob->Fight($t[0]);
         }
 
-        if($sc === $tresleeps) { //should skip first run
+        if($tresleeps !== false && $sc >= $tresleeps) { //should skip first run
             //spend that cash
             $imob->BankWithdraw();
             $imob->Auth(); //bank withdrawals seem to fuck with future posts... this is a bandaid.
@@ -91,10 +91,13 @@ if($imob) { //we haz ignition, rage engage.
          * healing is also kind of expensive..
          */
         $tre = $imob->TopRealEstate(false, false);
-        $tresleeps = ceil($tre['NewCost'] / $imob->income);
+        $target = $tre['NewCost'] - ($imob->BankBalance() + $imob->cash);
+        $tresleeps = ceil($target / $imob->income);
         //plus 11% per tick...
-        $tresleeps += ceil($tre['NewCost'] / (($imob->income / 100) * ($tresleeps * 11))); 
+        $tresleeps += ceil($target / (($imob->income / 100) * ($tresleeps * 11))); 
         $imob->Log(sprintf('Buying Real Estate in %d sleeps, aiming to buy %s for $%d ($%d)', $tresleeps, $tre['Name'], $tre['NewCost'], $tre['Income']), 'I');
+
+        if($tresleeps == 0) continue;
 
         //crawl some comments and profiles
        $skip_comments = false;            
