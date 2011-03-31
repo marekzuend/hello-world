@@ -97,7 +97,7 @@ if($imob) { //we haz ignition, rage engage.
         $tresleeps += ceil($target / (($imob->income / 100) * ($tresleeps * 11))); 
         $imob->Log(sprintf('Buying Real Estate in %d sleeps, aiming to buy %s for $%d ($%d)', $tresleeps, $tre['Name'], $tre['NewCost'], $tre['Income']), 'I');
 
-        if($tresleeps == 0) continue;
+        if($tresleeps <= 0) continue;
 
         //crawl some comments and profiles
        $skip_comments = false;            
