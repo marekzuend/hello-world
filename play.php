@@ -73,15 +73,16 @@ if($imob) { //we haz ignition, rage engage.
             }
         }
 
-        if($tresleeps === 0) { //should skip first run
-            //spend that cash
-            $needed = $tre['NewCost'] - $imob->cash;
-            if($needed > 0) { 
-                $imob->BankWithdraw($needed);
+        if($tresleeps !== false) { //should skip first run
+            if(($imob->cash + $imob->BankBalance()) > $tre['NewCost']) {
+                //spend that cash
+                $needed = $tre['NewCost'] - $imob->cash;
+                if($needed > 0) { 
+                    $imob->BankWithdraw($needed);
+                    $imob->Auth(); //bank withdrawals seem to fuck with future posts... this is a bandaid.
+                }
+                $imob->TopRealEstate(true, true);
             }
-            $imob->Auth(); //bank withdrawals seem to fuck with future posts... this is a bandaid.
-
-            $buy = $imob->TopRealEstate(true, true);
         } 
 
         /*
@@ -95,7 +96,7 @@ if($imob) { //we haz ignition, rage engage.
         $tresleeps = ceil($target / $imob->income);
         //plus 11% per tick...
         $add = (($imob->income / 100) * ($tresleeps * 11));
-        if($add != 0) $tresleeps += ceil($target / $add);
+        if($add > 0) $tresleeps += ceil($target / $add);
 
         $imob->Log(sprintf('Buying Real Estate in %d sleeps, aiming to buy %s for $%d ($%d)', $tresleeps, $tre['Name'], $tre['NewCost'], $tre['Income']), 'I');
 
