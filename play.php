@@ -39,13 +39,14 @@ function updateUser($v) {
 if($imob) { //we haz ignition, rage engage.
     $energysleeptil = 0;
     $sc = 0; //sleeps counter, fuck bitches get money
-    $tresleeps = 0;
+    $tresleeps = false;
 
     while(1) {
         //reset some loopy stuff
         $users = array();
+        $skip_sc = false;
 
-        if($energysleeptil < date('U')) {
+        if($imob->energy == $imob->maxenergy) {
             //do some missions to progress
             do {
                 if($mission = $imob->MissionBestExp(true)) {
@@ -72,7 +73,7 @@ if($imob) { //we haz ignition, rage engage.
             $imob->Fight($t[0]);
         }
 
-        if($sc == $tresleeps) {
+        if($sc === $tresleeps) { //should skip first run
             //spend that cash
             $imob->BankWithdraw();
             $imob->Auth(); //bank withdrawals seem to fuck with future posts... this is a bandaid.
@@ -80,20 +81,20 @@ if($imob) { //we haz ignition, rage engage.
             do {
                 $buy = $imob->TopRealEstate(true, true);
             } while ($buy !== false);
-
-            /*
-             * determine how many sleeps till the easter bunny comes. 
-             * loose estimate, cant predict attacks etc, money made, lost, or upkeep changes
-             * 11% of income (per tick) for a bit of buffer..?. probably needs to be higher to compensate for 10% deposit fee
-             * healing is also kind of expensive..
-             */
-            $tre = $imob->TopRealEstate(false, false);
-            $tresleeps = ceil($tre['NewCost'] / $imob->income);
-            //plus 11% per tick...
-            $tresleeps += ceil($tre['NewCost'] / (($imob->income / 100) * ($tresleeps * 11))); 
-            $imob->Log(sprintf('Buying Real Estate in %d sleeps, aiming to buy %s for $%d ($%d)', $tresleeps, $tre['Name'], $tre['NewCost'], $tre['Income']), 'I');
             $sc = 0;
         } 
+
+        /*
+         * determine how many sleeps till the easter bunny comes. 
+         * loose estimate, cant predict attacks etc, money made, lost, or upkeep changes
+         * 11% of income (per tick) for a bit of buffer..?. probably needs to be higher to compensate for 10% deposit fee
+         * healing is also kind of expensive..
+         */
+        $tre = $imob->TopRealEstate(false, false);
+        $tresleeps = ceil($tre['NewCost'] / $imob->income);
+        //plus 11% per tick...
+        $tresleeps += ceil($tre['NewCost'] / (($imob->income / 100) * ($tresleeps * 11))); 
+        $imob->Log(sprintf('Buying Real Estate in %d sleeps, aiming to buy %s for $%d ($%d)', $tresleeps, $tre['Name'], $tre['NewCost'], $tre['Income']), 'I');
 
         //crawl some comments and profiles
        $skip_comments = false;            
@@ -150,8 +151,11 @@ if($imob) { //we haz ignition, rage engage.
         $timelog = true;
         $si=0;
 
-        #FIXME: add break on energy
         while($sleeptil > $now) {
+            if($imob->energy == $imob->maxenergy) {
+                $skip_sc = true;
+                break;
+            }
             $now = date('U');
             $min = ($sleeptil-$now)/60;
             $energymin = ($energysleeptil-$now)/60;
@@ -165,7 +169,7 @@ if($imob) { //we haz ignition, rage engage.
             printf("\r[%s] Notice: Sleeping for %d minutes (until %s), energy restored in %d minutes", $sym, $min, date('d-M-Y G:i:s', $sleeptil), $energymin);
             sleep(2);
         }
-        $sc++;
+        if(!$skip_sc) $sc++;
         echo "\n";
         $imob->Auth();
     }
