@@ -58,6 +58,8 @@ class iMobster {
     public $timeleft = 0;
     public $energyrate = 0;
 
+    private $bankbalance = 0; //will probably get out of sync.. use BankBalance() instead.
+
     //constructicons, form devestat0r!
     function __construct($udid, $pf, $platform = 'iphone', $debug_or_dt = false, $debug2 = false) {
         if(!$udid || !$pf) return false;
@@ -678,53 +680,70 @@ class iMobster {
         $req = $this->Go('bank');
 
         if(preg_match('/Bank Balance:(.*?)class="cash"><span(.*?)>(.*?)<\/span/sm', $req['body'], $match)) {
-            $this->Log(sprintf('Your Bank Balance is $%s', $this->launderMoney($match[3])), 'I');
-            return $this->launderMoney($match[3]);
+            if($this->bankbalance != $this->launderMoney($match[3])) {
+                $this->Log(sprintf('Your Bank Balance is $%s', $this->launderMoney($match[3])), 'I');
+                $this->bankbalance = $this->launderMoney($match[3]);
+            }
+            return $this->bankbalance;
         } else return false;
     }
 
     function BankDeposit($amount = false) {
-        if(is_int($amount) && ($amount < 10)) return false;
+        if($amount < 10 && $amount !== false) return false;
         return $this->BankAction(true, $amount);
     }
 
     function BankWithdraw($amount = false) {
-        if(is_int($amount) && ($amount == 0)) return false;
+        if($amount == 0 && $amount !== false) return false;
         return $this->BankAction(false, $amount);
     }
 
     function BankAction($method = true, $amount = false) {
-        switch($method) {
-            default:
-            case true:
-                $action = 'Deposit';
-                $field = 'deposit';
-                if($amount == false) $amount = $this->cash;
-                $fee = round(($amount/100)*10);
-                $this->Log(sprintf('Depositing: $%d Fee: $%d', $amount-$fee, $fee), 'I');
-                break;
-            case false;
-                $action = 'Withdraw';
-                $field = 'withdraw';    
-                if($amount == false) {
-                   $bb = $this->BankBalance();
-                    if($bb > 1000000000 || $bb < -1) { //fuqin int rapz
-                        $amount = 1000000000;
-                    } else $amount = $bb;
-                }
-                $this->Log(sprintf('Withdrawing: $%d', $amount), 'I');
-                break;
-        }
+        $total = 0;
+        $bb = true;
+//        while($amount !== $total && $bb !== 0) {
+            switch($method) {
+                default:
+                case true:
+                    $action = 'Deposit';
+                    $field = 'deposit';
+                    if($amount == false) { 
+                        $amount2 = $this->cash;
+                    } else {
+                        $amount2 = $amount;
+                    }
+                    $fee = round(($amount2/100)*10);
+                    $this->Log(sprintf('Depositing: $%d Fee: $%d', $amount2-$fee, $fee), 'I');
+                    break;
+                case false;
+                    $action = 'Withdraw';
+                    $field = 'withdraw';    
+                    if($amount == false) {
+                       $bb = $this->BankBalance();
+                        if($bb > 1000000000 || $bb < -1) { //fuqin int rapz
+                            $amount2 = 1000000000;
+                        } else $amount2 = $bb;
+                    } else {
+                        $amount2 = $amount;
+                    }
+                    $this->Log(sprintf('Withdrawing: $%d', $amount2), 'I');
+                    break;
+            }
 
-        $this->Go('bank');
+            $this->Go('bank');
 
-        $post = array(sprintf('%sAmount', $field) => (int)$amount,
-                      'action' => $action,
-                      'sk' => 1);
+            $post = array(sprintf('%sAmount', $field) => (double)$amount2,
+                          'action' => $action,
+                          'sk' => 1);
 
-        usleep(rand(50000,100000));
-        $req = $this->request('bank.php', 'POST', $post);
-        if($this->OK($req)) return $this->BankBalance();
+            usleep(rand(50000,100000));
+            $req = $this->request('bank.php', 'POST', $post);
+            if($this->OK($req)) {
+                $total += $amount2;
+                $bb = $this->BankBalance();
+            }
+//        } 
+        return $bb;
     }
 
     function Heal() {

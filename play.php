@@ -60,7 +60,7 @@ if($imob) { //we haz ignition, rage engage.
             }
         }
 
-        $imob->Heal();
+        if($imob->stamina > 0 && $imob->health < $imob->maxhealth) $imob->Heal();
 
         //fight for some cash
         while($imob->stamina > 0 && $imob->health > 30) {
@@ -69,18 +69,19 @@ if($imob) { //we haz ignition, rage engage.
             if(in_array($v['ProfileID'], $users)) continue;
                 $u = updateUser($v);
                 $users[] = $u['ProfileID'];
+                $imob->Fight($v);
             }
-            $imob->Fight($t[0]);
         }
 
         if($tresleeps !== false && $sc >= $tresleeps) { //should skip first run
             //spend that cash
-            $imob->BankWithdraw();
+            $needed = $tre['NewCost'] - $imob->cash;
+            if($needed > 0) { 
+                $imob->BankWithdraw($needed);
+            }
             $imob->Auth(); //bank withdrawals seem to fuck with future posts... this is a bandaid.
 
-            do {
-                $buy = $imob->TopRealEstate(true, true);
-            } while ($buy !== false);
+            $buy = $imob->TopRealEstate(true, true);
             $sc = 0;
         } 
 
@@ -94,7 +95,9 @@ if($imob) { //we haz ignition, rage engage.
         $target = $tre['NewCost'] - ($imob->BankBalance() + $imob->cash);
         $tresleeps = ceil($target / $imob->income);
         //plus 11% per tick...
-        $tresleeps += ceil($target / (($imob->income / 100) * ($tresleeps * 11))); 
+        $add = (($imob->income / 100) * ($tresleeps * 11));
+        if($add != 0) $tresleeps += ceil($target / $add);
+
         $imob->Log(sprintf('Buying Real Estate in %d sleeps, aiming to buy %s for $%d ($%d)', $tresleeps, $tre['Name'], $tre['NewCost'], $tre['Income']), 'I');
 
         if($tresleeps <= 0) continue;
@@ -107,7 +110,7 @@ if($imob) { //we haz ignition, rage engage.
             if(in_array($v['ProfileID'], $users)) continue;
             
             $u = updateUser($v);
-            $users[] = $u['ProfileID'];
+            $users[] = $v['ProfileID'];
 
             if(!$skip_comments) {
 
