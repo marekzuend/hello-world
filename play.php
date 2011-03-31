@@ -46,7 +46,7 @@ if($imob) { //we haz ignition, rage engage.
         $users = array();
         $skip_sc = false;
 
-        if($imob->energy == $imob->maxenergy) {
+        if($imob->energy == $imob->maxenergy || $imob->energy > ($imob->levelexp - $imob->exp)) {
             //do some missions to progress
             do {
                 if($mission = $imob->MissionBestExp(true)) {
@@ -152,7 +152,7 @@ if($imob) { //we haz ignition, rage engage.
         $si=0;
 
         while($sleeptil > $now) {
-            if($imob->energy == $imob->maxenergy) {
+            if($imob->energy == $imob->maxenergy || $imob->energy > ($imob->levelexp - $imob->exp)) {
                 $skip_sc = true;
                 break;
             }
