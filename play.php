@@ -11,9 +11,8 @@ function updateUser($v) {
 
     //check to make sure its another player
     if($v['Profile'] == 'profile') return;
-
     $do_update_user = true;
-    
+
     $sql = sprintf("SELECT `LastEdited` FROM `Player` WHERE `ProfileID` = '%d' LIMIT 1", (int)$v['ProfileID']);
     $result = $db->query($sql) or $imob->Log($db->error, 'W');
     if($result->num_rows == 1) {
@@ -26,9 +25,15 @@ function updateUser($v) {
     }
     if($do_update_user) {
         $user = $imob->UserInfo($v['Profile']);
-        $sql = sprintf("REPLACE INTO `Player` (`ClassName`, `LastEdited`, `UserName`, `Level`, `Class`, `Game`, `ProfileID`) VALUES".
-                "('Player', NOW(), '%s', '%d', '%s', 'iMobsters', '%d');", $db->real_escape_string($user['Name']),
-                (int)$user['Level'], $db->real_escape_string($user['Class']), (int)$user['ProfileID']);
+        if(array_key_exists('MobSize', $v)) {
+            $sql = sprintf("REPLACE INTO `Player` (`ClassName`, `LastEdited`, `UserName`, `Level`, `Class`, `Game`, `ProfileID`, `MobSize`) VALUES".
+                    "('Player', NOW(), '%s', '%d', '%s', 'iMobsters', '%d', '%d');", $db->real_escape_string($user['Name']),
+                    (int)$user['Level'], $db->real_escape_string($user['Class']), (int)$user['ProfileID'], (int)$v['MobSize']);        
+        } else {
+            $sql = sprintf("REPLACE INTO `Player` (`ClassName`, `LastEdited`, `UserName`, `Level`, `Class`, `Game`, `ProfileID`) VALUES".
+                    "('Player', NOW(), '%s', '%d', '%s', 'iMobsters', '%d');", $db->real_escape_string($user['Name']),
+                    (int)$user['Level'], $db->real_escape_string($user['Class']), (int)$user['ProfileID']);
+        }
         $db->query($sql) or $imob->Log($db->error, 'W');
         return $user;
     }
@@ -44,9 +49,12 @@ if($imob) { //we haz ignition, rage engage.
     while(1) {
         //reset some loopy stuff
         $users = array();
-        $skip_sc = false;
+        //all the people who were mean to you in high school.
+        $hitlist = true;
 
-        if($imob->energy == $imob->maxenergy || $imob->energy > ($imob->levelexp - $imob->exp)) {
+        if($imob->energy == $imob->maxenergy 
+            || $imob->energy > ($imob->levelexp - $imob->exp) //try to levelup instead of wait
+            || ($imob->maxenergy - $imob->energy) * $imob->energyrate < $imob->timeleft) { //run to the nearest tick before refil, ensures cash
             //do some missions to progress
             do {
                 if($mission = $imob->MissionBestExp(true)) {
@@ -60,7 +68,8 @@ if($imob) { //we haz ignition, rage engage.
             }
         }
 
-        if($imob->stamina > 0 && $imob->health < $imob->maxhealth) $imob->Heal();
+        //dont waste cash on healing for 1 stamina etc
+        if($imob->stamina > 10 && $imob->health < $imob->maxhealth) $imob->Heal();
 
         //fight for some cash
         while($imob->stamina > 0 && $imob->health > 30) {
@@ -74,7 +83,7 @@ if($imob) { //we haz ignition, rage engage.
         }
 
         if($tresleeps !== false) { //should skip first run
-            if(($imob->cash + $imob->BankBalance()) > $tre['NewCost']) {
+            if(($imob->cash + $imob->bankbalance) > $tre['NewCost']) {
                 //spend that cash
                 $needed = $tre['NewCost'] - $imob->cash;
                 if($needed > 0) { 
@@ -85,6 +94,17 @@ if($imob) { //we haz ignition, rage engage.
             }
         } 
 
+        if($imob->income > 2000000) { //low income players shouldnt bother
+            //process the (s)hitlist
+            $result = $db->query("SELECT * FROM `Player` WHERE `Hitlist` = 1") or $imob->Log($db->error, 'W');
+            if($result->num_rows > 0) {
+                while(($imob->cash + $imob->bankbalance) > 10000 && ($player = $result->fetch_assoc())) {
+//                    if($imob->cash < 10000) $imob->BankWithdraw(10000 - $imob->cash);
+                    if($imob->DoHitlist($player) == false) break;
+                }
+            }
+        }
+
         /*
          * determine how many sleeps till the easter bunny comes. 
          * loose estimate, cant predict attacks etc, money made, lost, or upkeep changes
@@ -92,7 +112,7 @@ if($imob) { //we haz ignition, rage engage.
          * healing is also kind of expensive..
          */
         $tre = $imob->TopRealEstate(false, false);
-        $target = $tre['NewCost'] - ($imob->BankBalance() + $imob->cash);
+        $target = $tre['NewCost'] - ($imob->bankbalance + $imob->cash);
         $tresleeps = ceil($target / $imob->income);
         //plus 11% per tick...
         $add = (($imob->income / 100) * ($tresleeps * 11));
@@ -136,7 +156,7 @@ if($imob) { //we haz ignition, rage engage.
 
         $imob->RespondToInvites();
 
-        //see if it reall is time to nap or can we keep playing?
+        //see if it really is time to nap or can we keep playing?
         if($imob->health > 30 && $imob->stamina > 0) continue;
 
         if($imob->cash > 10) $imob->BankDeposit();
@@ -153,7 +173,7 @@ if($imob) { //we haz ignition, rage engage.
         $si=0;
 
         while($sleeptil > $now) {
-            if($imob->energy == $imob->maxenergy || $imob->energy > ($imob->levelexp - $imob->exp)) break;
+            if($energysleeptil < $now || floor(($energysleeptil - $now) / $imob->energyrate) + $imob->energy > ($imob->levelexp - $imob->exp)) break;
             $now = date('U');
             $min = ($sleeptil-$now)/60;
             $energymin = ($energysleeptil-$now)/60;

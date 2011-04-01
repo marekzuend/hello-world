@@ -36,7 +36,7 @@ class iMobster {
     public $name = '';
 
     public $mobsize = 0;
-    public $mobcode = '';
+    public $mobcode = false;
 
     public $cash = 0;
     public $income = 0;
@@ -58,7 +58,8 @@ class iMobster {
     public $timeleft = 0;
     public $energyrate = 0;
 
-    private $bankbalance = 0; //will probably get out of sync.. use BankBalance() instead.
+    public $bankbalance = 0; //be sure to update with BankBalance()
+    public $favorpoints = 0;
 
     //constructicons, form devestat0r!
     function __construct($udid, $pf, $platform = 'iphone', $debug_or_dt = false, $debug2 = false) {
@@ -104,6 +105,7 @@ class iMobster {
        if(!$this->Auth()) return false;
 
         $this->Go();
+        $this->BankBalance();
     }
 
     function __destruct() {
@@ -305,6 +307,14 @@ class iMobster {
             $this->maxstamina = (int)$match[4];
         }
 
+        //favor points
+        if(preg_match('#Godfather</a(.*?)"amount">(.*?)</span#ms', $body, $match)) {
+            if($match[2] != $this->favorpoints) {
+                $this->Log(sprintf('FavorPoints: %d', $match[2]), 'I');
+            }
+            $this->favorpoints = $match[2];
+        }       
+
         //timers, fuck off some of this regex in place for json rape :)
         if(preg_match('#setTopBarTimerData\((.*?)\);#', $body, $match)) {
             //var_dump(json_decode($match[1]));
@@ -502,6 +512,7 @@ class iMobster {
     function UserInfo($profileurl = false) {
         if(!$profileurl) return false;
         $req = $this->Go($profileurl);
+        //var_dump($req);
         $user = array();
         //probably add get items etc so you can calculate fight or hitlist
         if(preg_match('/href=\'\/fight\.php\?(.*?)\'/ms', $req['body'], $mat)) {
@@ -763,6 +774,8 @@ class iMobster {
 
         if($bb > $cost) {
             $this->Go($action);
+            //update $this->bb
+            $this->BankBalance();
             return true;
         }
         return false;
@@ -821,6 +834,10 @@ class iMobster {
                             if(preg_match('#\+(.*?) Experience#ms', $w, $mat)) {
                                 $missions[$mk]['Experience'] = (int)$mat[1];
                             } 
+
+                            if(preg_match('#"requiredGroup">(.*?)<#ms', $w, $mat)) {
+                                $missions[$mk]['MobSize'] = (int)$mat[1];
+                            } else $missions[$mk]['MobSize'] = 0; 
 
                             $missions[$mk]['ExperienceRate'] = $missions[$mk]['Experience'] / $missions[$mk]['Energy'];
 
@@ -904,16 +921,16 @@ class iMobster {
                 if($incomplete_only) {
                     if($v['Progress'] == 100) continue;
                 } 
+                if($v['MobSize'] > $this->mobsize) continue;
                 $continue = false;
                 $totalcost = 0;
                 if($v['Required'] !== false) foreach($v['Required'] as $l => $w) {
-                    //if($v['Name'] == 'Bank Robbery') var_dump($w);
                     if($no_needed && $w['Needed'] > 0) $continue = true;
                     if($w['Owned'] == 0 && $w['BuyURL'] == false) $continue = true;
                     if($w['Needed'] > 0) $totalcost += $w['TotalCost'];
                 }
                 if($continue === true) continue;
-                if($totalcost > $this->cash) continue;
+                if($totalcost > $this->cash + $this->bankbalance) continue;
                 $this->Log(sprintf("MissionBestExp: %s ExpRate: %s CashRate: %s", $v['Name'], $v['ExperienceRate'], $v['CashRate']), 'D');
                 if(!$incomplete_only && $best !== false) {
                     if($best['ExperienceRate'] == $v['ExperienceRate'] && $best['CashRate'] < $v['CashRate']) {
@@ -946,9 +963,15 @@ class iMobster {
         if($mission['Required'] !== false) {
             foreach($mission['Required'] as $k => $v) {
                 if($v['Needed'] > 0) {
-                    if($v['TotalCost'] < $this->cash && $v['BuyURL'] !== false) {
+                    if($v['TotalCost'] < $this->cash && $v['BuyURL'] != false) {
 #                        $this->Log('Buying');
                         $this->Go($v['BuyURL']);
+                    } elseif($v['TotalCost'] < ($this->cash + $this->bankbalance) && $v['BuyURL'] != false) {
+                        $needed = $v['TotalCost'] - $this->cash;
+                        if($needed > 0 && $this->bankbalance > $needed) {
+                            $this->BankWithdraw($needed);
+                            $this->Go($v['BuyURL']);
+                        }
                     } else {
                         $this-Log('Unable to Buy %s', $v['Name'], 'N');
                         return false;
@@ -996,6 +1019,16 @@ class iMobster {
         $this->Log(sprintf('Fighting! %s Level: %s MobSize: %s', $target['Name'], $target['Level'], $target['MobSize']), 'N');
         $req = $this->Go($target['AttackURL']);
         //need some parsing here
+        return $req;
+    }
+
+    function DoHitlist($target) {
+        if(!array_key_exists('ProfileID', $target) || $target['ProfileID'] == 0) return false;
+        $dummies = $this->Targets();
+        $d = $dummies[rand(0,9)];
+        $profileurl = str_replace($d['ProfileID'], $target['ProfileID'], $d['Profile']);
+        //$ui = $this->UserInfo($profileurl);
+        //var_dump($target, $profileurl, $ui);
     }
                
     //utilities
