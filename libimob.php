@@ -924,6 +924,7 @@ class iMobster {
                 if($v['MobSize'] > $this->mobsize) continue;
                 $continue = false;
                 $totalcost = 0;
+//                if($v['Name'] == 'Expand Your Influence') { var_dump($v); exit; }
                 if($v['Required'] !== false) foreach($v['Required'] as $l => $w) {
                     if($no_needed && $w['Needed'] > 0) $continue = true;
                     if($w['Owned'] == 0 && $w['BuyURL'] == false) $continue = true;
@@ -964,12 +965,13 @@ class iMobster {
             foreach($mission['Required'] as $k => $v) {
                 if($v['Needed'] > 0) {
                     if($v['TotalCost'] < $this->cash && $v['BuyURL'] != false) {
-#                        $this->Log('Buying');
+                        $this->Log(sprintf("Buying %s %s's for %s", $v['Needed'], $v['Name'], $v['TotalCost']), 'N');
                         $this->Go($v['BuyURL']);
                     } elseif($v['TotalCost'] < ($this->cash + $this->bankbalance) && $v['BuyURL'] != false) {
                         $needed = $v['TotalCost'] - $this->cash;
                         if($needed > 0 && $this->bankbalance > $needed) {
                             $this->BankWithdraw($needed);
+                            $this->Log(sprintf("Buying %s %s's for %s", $v['Needed'], $v['Name'], $v['TotalCost']), 'N');
                             $this->Go($v['BuyURL']);
                         }
                     } else {
