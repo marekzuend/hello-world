@@ -165,6 +165,7 @@ if($imob) { //we haz ignition, rage engage.
 
         //get the kids ready for bed, no smokes or alcohol after 8pm ya little shits.
         $now = date('U');
+        $sleeptime = $now;
 
         $energysleeptil = ($imob->maxenergy - $imob->energy) * $imob->energyrate + $now;
         $sleeptil = $now + $imob->timeleft+10;
@@ -172,8 +173,8 @@ if($imob) { //we haz ignition, rage engage.
         $si=0;
 
         while($sleeptil > $now) {
-            if($energysleeptil < $now || floor(($energysleeptil - $now) / $imob->energyrate) + $imob->energy > ($imob->levelexp - $imob->exp)) break;
             $now = date('U');
+            if($energysleeptil < $now || floor(($now - $sleeptime) / $imob->energyrate) + $imob->energy > ($imob->levelexp - $imob->exp)) break;
             $min = ($sleeptil-$now)/60;
             $energymin = ($energysleeptil-$now)/60;
             $s = array('-', '\\', '|', '/');
