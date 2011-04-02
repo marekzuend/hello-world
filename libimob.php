@@ -754,6 +754,7 @@ class iMobster {
                 $bb = $this->BankBalance();
             }
 //        } 
+        $this->Auth(); //bandaid fix.
         return $bb;
     }
 
@@ -793,7 +794,7 @@ class iMobster {
             if(preg_match_all('#<a href="/missions\.php\?cat=(.*?)">(.*?)<(.*?)>(.*?)<#ms', $req['body'], $m) > 0) {
                 foreach($m[1] as $k => $v) {
                     $location = $m[2][$k];
-                    if($loc) if($loc != $location) continue; 
+                        if($loc) if($loc != $location) continue; 
 
                     $noreq = false;
 

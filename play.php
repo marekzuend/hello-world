@@ -88,7 +88,6 @@ if($imob) { //we haz ignition, rage engage.
                 $needed = $tre['NewCost'] - $imob->cash;
                 if($needed > 0) { 
                     $imob->BankWithdraw($needed);
-                    $imob->Auth(); //bank withdrawals seem to fuck with future posts... this is a bandaid.
                 }
                 $imob->TopRealEstate(true, true);
             }
