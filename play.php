@@ -161,7 +161,7 @@ if($imob) { //we haz ignition, rage engage.
         if($imob->cash > 10) $imob->BankDeposit();
 
         //prevent cash regen after deposit. it happens -_-
-        if($imob->cash > 0) continue;
+        if($imob->cash > 10) continue;
 
         //get the kids ready for bed, no smokes or alcohol after 8pm ya little shits.
         $now = date('U');
