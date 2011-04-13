@@ -52,10 +52,12 @@ if($imob) { //we haz ignition, rage engage.
         //all the people who were mean to you in high school.
         $hitlist = true;
 
-        if($imob->energy == $imob->maxenergy 
-            || $imob->energy > ($imob->levelexp - $imob->exp) //try to levelup instead of wait
-            || ($imob->maxenergy - $imob->energy) * $imob->energyrate < $imob->timeleft) { //run to the nearest tick before refil, ensures cash
-            //do some missions to progress
+        if($imob->energy == $imob->maxenergy) { //do missions to progress
+
+//these fail on higher level players... leave out till source changes to json && !regex
+/*            || $imob->energy > ($imob->levelexp - $imob->exp) //try to levelup instead of wait
+            || ($imob->maxenergy - $imob->energy) * $imob->energyrate < $imob->timeleft //run to the nearest tick before refil, ensures cash
+*/
             do {
                 if($mission = $imob->MissionBestExp(true)) {
                     $imob->DoMission($mission);

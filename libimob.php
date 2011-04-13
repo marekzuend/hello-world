@@ -968,7 +968,7 @@ class iMobster {
                     if($v['TotalCost'] < $this->cash && $v['BuyURL'] != false) {
                         $this->Log(sprintf("Buying %s %s's for %s", $v['Needed'], $v['Name'], $v['TotalCost']), 'N');
                         $this->Go($v['BuyURL']);
-                    } elseif($v['TotalCost'] < ($this->cash + $this->bankbalance) && $v['BuyURL'] != false) {
+                    } elseif($v['TotalCost'] > $this->cash && $v['TotalCost'] < ($this->cash + $this->bankbalance) && $v['BuyURL'] != false) {
                         $needed = $v['TotalCost'] - $this->cash;
                         if($needed > 0 && $this->bankbalance > $needed) {
                             $this->BankWithdraw($needed);
